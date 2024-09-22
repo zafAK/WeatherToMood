@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import requests
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -15,7 +16,8 @@ def get_weather():
     weather_data = fetch_weather_data(city)
     
     if weather_data:
-        return render_template('weather.html', city=city, weather=weather_data)
+        mood = map_weather_to_mood(weather_data)
+        return render_template('weather.html', city=city, weather=weather_data, mood=mood)
     else:
         return render_template('error.html', city=city)
 
@@ -32,5 +34,53 @@ def fetch_weather_data(city):
     else:
         return None
     
+def map_weather_to_mood(weather_data):
+    """
+    mood mapping from weather conditions.
+    """
+    temp = weather_data['main']['temp']
+    weather_condition = weather_data['weather'][0]['main'].lower()
+    wind_speed = weather_data['wind']['speed']
+    humidity = weather_data['main']['humidity']
+    visibility = weather_data.get('visibility', 10000) / 1000  # Convert to km
+    sunrise = weather_data['sys']['sunrise']
+    sunset = weather_data['sys']['sunset']
+    current_time = weather_data['dt']
+    
+    # Convert times to datetime objects
+    sunrise_time = datetime.utcfromtimestamp(sunrise)
+    sunset_time = datetime.utcfromtimestamp(sunset)
+    current_time = datetime.utcfromtimestamp(current_time)
+
+    # Determine if it's day or night
+    if sunrise_time <= current_time <= sunset_time:
+        day_period = 'day'
+    else:
+        day_period = 'night'
+
+    # Mood mapping based on detailed conditions
+    if temp > 30 and 'clear' in weather_condition and day_period == 'day':
+        return "Vibrant and Happy"
+    elif temp > 30 and 'clear' in weather_condition and day_period == 'night':
+        return "Warm and Relaxed"
+    elif temp > 25 and 'rain' in weather_condition:
+        return "Cozy"
+    elif temp < 10 and 'rain' in weather_condition:
+        return "Sad"
+    elif temp < 0 and 'snow' in weather_condition:
+        return "Peaceful"
+    elif 10 <= temp <= 25 and 'clouds' in weather_condition and wind_speed < 5:
+        return "Thoughtful"
+    elif wind_speed > 10 and humidity > 80:
+        return "Restless"
+    elif visibility < 2:
+        return "Mysterious"
+    elif 'thunderstorm' in weather_condition:
+        return "Intense"
+    elif day_period == 'night' and visibility < 2:
+        return "Dark and Brooding"
+    else:
+        return "Balanced and Calm"
+
 if __name__ == '__main__':
     app.run(debug=True)
