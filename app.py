@@ -14,9 +14,11 @@ def index():
 def get_weather():
     city = request.form['city']
     weather_data = fetch_weather_data(city)
+
+    mood = map_weather_to_mood(weather_data)
     
     if weather_data:
-        return render_template('weather.html', city=city, weather=weather_data)
+        return render_template('weather.html', city=city, weather=weather_data, mood=mood)
     else:
         return render_template('error.html', city=city)
 
