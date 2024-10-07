@@ -55,6 +55,13 @@
         button:hover {
             background-color: #2980b9;
         }
+        .spotify-button {
+            background-color: #1db954;
+            margin: 10px 0;
+        }
+        .spotify-button:hover {
+            background-color: #1aa34a;
+        }
         .data-section {
             margin-top: 20px;
         }
@@ -79,7 +86,17 @@
             <input type="text" name="city" placeholder="Enter city name" required>
             <button type="submit">Get Weather</button>
         </form>
-
+        
+        <!-- Spotify Authentication Section -->
+        {% if 'access_token' in session %}
+            <p>You're connected to Spotify! You can now view your playlists or explore mood-based playlists.</p>
+            <a href="/playlists"><button class="spotify-button">View My Spotify Playlists</button></a>
+            <a href="/weather"><button class="spotify-button">Get Mood-Based Playlists</button></a>
+        {% else %}
+            <a href="/login"><button class="spotify-button">Connect with Spotify</button></a>
+        {% endif %}
+        
+        <!-- Weather and Mood Data Section -->
         <div class="data-section">
             {% if weather %}
                 <h2>Weather in {{ city }}</h2>

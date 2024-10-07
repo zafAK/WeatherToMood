@@ -1,8 +1,11 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, session, url_for
 import requests
+import os
 from datetime import datetime
+from spotify_integration import get_auth_url, get_tokens, save_tokens, get_user_playlists, get_mood_playlists
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 API_KEY = '9115764ccc5b2d7dc29ea05ef54582a4'
 
@@ -14,7 +17,6 @@ def index():
 def get_weather():
     city = request.form['city']
     weather_data = fetch_weather_data(city)
-
     mood = map_weather_to_mood(weather_data)
     
     if weather_data:
@@ -22,6 +24,35 @@ def get_weather():
     else:
         return render_template('error.html', city=city)
 
+@app.route('/login')
+def login():
+    return redirect(get_auth_url())
+
+@app.route('/callback')
+def callback():
+    auth_code = request.args.get('code')
+    if auth_code:
+        tokens = get_tokens(auth_code)
+        save_tokens(tokens)
+        return redirect(url_for('playlists'))
+    else:
+        return "Authorization failed."
+
+@app.route('/playlists')
+def playlists():
+    playlists = get_user_playlists()
+    playlist_html = '<h2>Your Spotify Playlists</h2>'
+    for playlist in playlists:
+        playlist_html += f"<p>{playlist['name']}</p>"
+    return playlist_html
+
+@app.route('/mood_playlists/<mood>')
+def mood_playlists(mood):
+    mood_playlists = get_mood_playlists(mood)
+    mood_playlist_html = f'<h2>Playlists for {mood.capitalize()} Mood</h2>'
+    for playlist in mood_playlists:
+        mood_playlist_html += f"<p>{playlist['name']}</p>"
+    return mood_playlist_html
 
 def fetch_weather_data(city):
     url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric'
@@ -29,7 +60,7 @@ def fetch_weather_data(city):
 
     if response.status_code != 200:
         return None
-    
+
     print(f"Request URL: {url}")
     print(f"Response Status Code: {response.status_code}")
     print(f"Response Data: {response.text}")  # To see the raw data returned by the API
@@ -38,7 +69,7 @@ def fetch_weather_data(city):
         return response.json()
     else:
         return None
-    
+
 def map_weather_to_mood(weather_data):
     temp = weather_data['main']['temp']
     weather_condition = weather_data['weather'][0]['main'].lower()
@@ -49,10 +80,8 @@ def map_weather_to_mood(weather_data):
     sunset = weather_data['sys']['sunset']
     current_time = weather_data['dt']
 
-    # Determine if it's day or night
     day_period = 'day' if sunrise <= current_time <= sunset else 'night'
 
-    # Updated mood mapping logic
     if temp > 30 and 'clear' in weather_condition and day_period == 'day':
         return "Vibrant and Happy"
     elif temp > 30 and 'clear' in weather_condition and day_period == 'night':
@@ -75,7 +104,6 @@ def map_weather_to_mood(weather_data):
         return "Dark and Brooding"
     else:
         return "Balanced and Calm"
-
 
 if __name__ == '__main__':
     app.run(debug=True)
