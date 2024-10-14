@@ -76,22 +76,37 @@
             color: red;
             font-weight: bold;
         }
+        .playlist-section {
+            margin-top: 20px;
+        }
+        .playlist {
+            margin-bottom: 20px;
+        }
+        .playlist img {
+            width: 100px;
+            border-radius: 5px;
+        }
+        .playlist a {
+            display: block;
+            margin-top: 5px;
+            color: #3498db;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Weather Mood App</h1>
+        <h1>Weather to Music App</h1>
         
         <form action="/weather" method="post">
             <input type="text" name="city" placeholder="Enter city name" required>
-            <button type="submit">Get Weather</button>
+            <button type="submit">Get Music Based on Weather!</button>
         </form>
         
         <!-- Spotify Authentication Section -->
         {% if 'access_token' in session %}
             <p>You're connected to Spotify! You can now view your playlists or explore mood-based playlists.</p>
             <a href="/playlists"><button class="spotify-button">View My Spotify Playlists</button></a>
-            <a href="/weather"><button class="spotify-button">Get Mood-Based Playlists</button></a>
         {% else %}
             <a href="/login"><button class="spotify-button">Connect with Spotify</button></a>
         {% endif %}
@@ -106,6 +121,20 @@
                 <p>Humidity: {{ weather['main']['humidity'] }}%</p>
                 <p>Visibility: {{ weather['visibility'] / 1000 }} km</p>
                 <h3 class="mood">Mood: {{ mood }}</h3>
+                
+                <!-- Mood-Based Playlists Section -->
+                {% if playlists %}
+                    <div class="playlist-section">
+                        <h2>Playlists for "{{ mood }}" Mood</h2>
+                        {% for playlist in playlists %}
+                            <div class="playlist">
+                                <img src="{{ playlist['images'][0]['url'] }}" alt="{{ playlist['name'] }} cover">
+                                <p>{{ playlist['name'] }}</p>
+                                <a href="{{ playlist['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             {% elif error %}
                 <p class="error">{{ error }}</p>
             {% endif %}

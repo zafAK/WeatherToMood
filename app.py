@@ -18,9 +18,14 @@ def get_weather():
     city = request.form['city']
     weather_data = fetch_weather_data(city)
     mood = map_weather_to_mood(weather_data)
+    # Fetch mood-based playlists from Spotify
+    mood_playlists = get_mood_playlists(mood)
     
     if weather_data:
-        return render_template('weather.html', city=city, weather=weather_data, mood=mood)
+        # Render the mood-based playlists on a separate template
+        return render_template('index.html', city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
+    # elif(weather_data[3]):
+    #     return f"<h3>Could not retrieve playlists for mood: {mood}</h3>"
     else:
         return render_template('error.html', city=city)
 
@@ -34,7 +39,7 @@ def callback():
     if auth_code:
         tokens = get_tokens(auth_code)
         save_tokens(tokens)
-        return redirect(url_for('playlists'))
+        return redirect(url_for('index'))
     else:
         return "Authorization failed."
 
@@ -46,13 +51,6 @@ def playlists():
         playlist_html += f"<p>{playlist['name']}</p>"
     return playlist_html
 
-@app.route('/mood_playlists/<mood>')
-def mood_playlists(mood):
-    mood_playlists = get_mood_playlists(mood)
-    mood_playlist_html = f'<h2>Playlists for {mood.capitalize()} Mood</h2>'
-    for playlist in mood_playlists:
-        mood_playlist_html += f"<p>{playlist['name']}</p>"
-    return mood_playlist_html
 
 def fetch_weather_data(city):
     url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric'
@@ -63,7 +61,7 @@ def fetch_weather_data(city):
 
     print(f"Request URL: {url}")
     print(f"Response Status Code: {response.status_code}")
-    print(f"Response Data: {response.text}")  # To see the raw data returned by the API
+    print(f"Response Data: {response.text}")
 
     if response.status_code == 200:
         return response.json()
@@ -75,7 +73,7 @@ def map_weather_to_mood(weather_data):
     weather_condition = weather_data['weather'][0]['main'].lower()
     wind_speed = weather_data['wind']['speed']
     humidity = weather_data['main']['humidity']
-    visibility = weather_data.get('visibility', 10000) / 1000  # Convert to km
+    visibility = weather_data.get('visibility', 10000) / 1000
     sunrise = weather_data['sys']['sunrise']
     sunset = weather_data['sys']['sunset']
     current_time = weather_data['dt']

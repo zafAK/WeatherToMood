@@ -51,6 +51,23 @@ def get_mood_playlists(mood):
     if not access_token:
         return redirect(url_for('login'))
 
-    headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(f"{SPOTIFY_API_URL}/browse/categories/{mood}/playlists", headers=headers)
-    return response.json().get('playlists', {}).get('items', [])
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    # Use the mood directly in the search query
+    response = requests.get(
+        f"{SPOTIFY_API_URL}/search",
+        headers=headers,
+        params={
+            "q": mood,  # Use the mood as the search query
+            "type": "playlist",
+            "limit": 5  # Limit the results to top 5 playlists
+        }
+    )
+
+    if response.status_code == 200:
+        return response.json().get('playlists', {}).get('items', [])
+    else:
+        print(f"Failed to retrieve playlists: {response.status_code}")
+        return []
