@@ -17,17 +17,18 @@ def index():
 def get_weather():
     city = request.form['city']
     weather_data = fetch_weather_data(city)
-    mood = map_weather_to_mood(weather_data)
-    # Fetch mood-based playlists from Spotify
-    mood_playlists = get_mood_playlists(mood)
     
-    if weather_data:
-        # Render the mood-based playlists on a separate template
-        return render_template('index.html', city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
-    # elif(weather_data[3]):
-    #     return f"<h3>Could not retrieve playlists for mood: {mood}</h3>"
-    else:
-        return render_template('error.html', city=city)
+    if not weather_data:
+        return render_template('error.html', city=city, error="Weather data not available.")
+    
+    mood = map_weather_to_mood(weather_data)
+    
+    # Fetch mood-based playlists only if the user is logged in
+    mood_playlists = None
+    if 'access_token' in session:
+        mood_playlists = get_mood_playlists(mood)
+    
+    return render_template('index.html', city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
 
 @app.route('/login')
 def login():
@@ -36,37 +37,31 @@ def login():
 @app.route('/callback')
 def callback():
     auth_code = request.args.get('code')
-    if auth_code:
-        tokens = get_tokens(auth_code)
-        save_tokens(tokens)
-        return redirect(url_for('index'))
-    else:
-        return "Authorization failed."
+    if not auth_code:
+        return "Authorization failed. No code provided."
+
+    tokens = get_tokens(auth_code)
+    if tokens is None or 'access_token' not in tokens:
+        return "Authorization failed. Invalid tokens."
+
+    save_tokens(tokens)
+    return redirect(url_for('index'))
 
 @app.route('/playlists')
 def playlists():
+    if 'access_token' not in session:
+        return redirect(url_for('login'))
+
     playlists = get_user_playlists()
-    playlist_html = '<h2>Your Spotify Playlists</h2>'
-    for playlist in playlists:
-        playlist_html += f"<p>{playlist['name']}</p>"
-    return playlist_html
+    return render_template('playlists.html', playlists=playlists)
 
-
+# Function to fetch weather data (no changes needed)
 def fetch_weather_data(city):
     url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric'
     response = requests.get(url)
-
-    if response.status_code != 200:
-        return None
-
-    print(f"Request URL: {url}")
-    print(f"Response Status Code: {response.status_code}")
-    print(f"Response Data: {response.text}")
-
     if response.status_code == 200:
         return response.json()
-    else:
-        return None
+    return None
 
 def map_weather_to_mood(weather_data):
     temp = weather_data['main']['temp']

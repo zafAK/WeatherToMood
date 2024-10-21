@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Spotify Playlists</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align: center;
+            padding: 40px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .playlist {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .playlist img {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            margin-right: 20px;
+        }
+        .playlist-name {
+            font-size: 1.5em;
+            color: #3498db;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Your Spotify Playlists</h1>
+        
+        {% if playlists %}
+            <div class="playlists">
+                {% for playlist in playlists %}
+                    <div class="playlist">
+                        <img src="{{ playlist['images'][0]['url'] }}" alt="{{ playlist['name'] }} Cover">
+                        <div class="playlist-info">
+                            <a href="{{ playlist['external_urls']['spotify'] }}" target="_blank" class="playlist-name">
+                                {{ playlist['name'] }}
+                            </a>
+                            <p>{{ playlist['tracks']['total'] }} Tracks</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No playlists available. Please log in to Spotify to view your playlists.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
