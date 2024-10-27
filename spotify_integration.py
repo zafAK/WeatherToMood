@@ -41,6 +41,7 @@ def save_tokens(tokens):
     if tokens and 'access_token' in tokens:
         session['access_token'] = tokens.get('access_token')
         session['refresh_token'] = tokens.get('refresh_token')
+        session.modified = True
     else:
         raise ValueError("Failed to save tokens. Invalid tokens received.")
 
@@ -115,7 +116,6 @@ def get_mood_playlists(mood):
         return []
 
 
-# Helper function: Refresh access token (OPTIONAL - future enhancement)
 def refresh_token():
     refresh_token = session.get('refresh_token')
     if not refresh_token:

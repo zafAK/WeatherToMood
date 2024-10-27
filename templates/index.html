@@ -100,7 +100,7 @@
         
         <form action="/weather" method="post">
             <input type="text" name="city" placeholder="Enter city name" required>
-            <button type="submit">Get Music Based on Weather!</button>
+            <button type="submit">Get Music Based on Weather Once Connected!</button>
         </form>
         
         <!-- Spotify Authentication Section -->
@@ -124,16 +124,19 @@
                 
                 <!-- Mood-Based Playlists Section -->
                 {% if playlists %}
-                    <div class="playlist-section">
-                        <h2>Playlists for "{{ mood }}" Mood</h2>
-                        {% for playlist in playlists %}
-                            <div class="playlist">
-                                <img src="{{ playlist['images'][0]['url'] }}" alt="{{ playlist['name'] }} cover">
-                                <p>{{ playlist['name'] }}</p>
-                                <a href="{{ playlist['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
-                            </div>
-                        {% endfor %}
-                    </div>
+                <div class="playlist-section">
+                    <h2>Playlists for "{{ mood }}" Mood</h2>
+                    {% for playlist in playlists %}
+                        <div class="playlist">
+                            <img src="{{ playlist['images'][0]['url'] }}" alt="{{ playlist['name'] }} cover">
+                            <p>{{ playlist['name'] }}</p>
+                            <a href="{{ playlist['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
+                            
+                            <!-- Share Button to Copy the Spotify Link -->
+                            <button class="share-button" data-url="{{ playlist['external_urls']['spotify'] }}">Share Playlist</button>
+                        </div>
+                    {% endfor %}
+                </div>
                 {% endif %}
             {% elif error %}
                 <p class="error">{{ error }}</p>
@@ -142,3 +145,26 @@
     </div>
 </body>
 </html>
+
+<!-- JavaScript for Copying to Clipboard -->
+<script>
+    // Function to handle sharing the playlist link
+    document.addEventListener('DOMContentLoaded', function() {
+        const shareButtons = document.querySelectorAll('.share-button');
+        
+        shareButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const playlistUrl = this.getAttribute('data-url');
+                
+                // Copy the link to the clipboard using Clipboard API
+                navigator.clipboard.writeText(playlistUrl)
+                    .then(() => {
+                        alert('Playlist link copied to clipboard!');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy the link: ', err);
+                    });
+            });
+        });
+    });
+</script>

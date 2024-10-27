@@ -85,7 +85,7 @@ def map_weather_to_mood(weather_data):
         return "Sad"
     elif temp < 0 and 'snow' in weather_condition:
         return "Peaceful"
-    elif 10 <= temp <= 25 and 'clouds' in weather_condition and wind_speed < 5:
+    elif 10 <= temp <= 25 and 'clouds' in weather_condition:
         return "Thoughtful"
     elif wind_speed > 10 and humidity > 80:
         return "Restless"
