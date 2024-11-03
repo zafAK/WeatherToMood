@@ -124,19 +124,21 @@
                 
                 <!-- Mood-Based Playlists Section -->
                 {% if playlists %}
-                <div class="playlist-section">
-                    <h2>Playlists for "{{ mood }}" Mood</h2>
-                    {% for playlist in playlists %}
-                        <div class="playlist">
-                            <img src="{{ playlist['images'][0]['url'] }}" alt="{{ playlist['name'] }} cover">
-                            <p>{{ playlist['name'] }}</p>
-                            <a href="{{ playlist['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
-                            
-                            <!-- Share Button to Copy the Spotify Link -->
-                            <button class="share-button" data-url="{{ playlist['external_urls']['spotify'] }}">Share Playlist</button>
-                        </div>
-                    {% endfor %}
-                </div>
+                    <div class="playlist-section">
+                        <h2>Playlists for "{{ mood }}" Mood</h2>
+                        {% for playlist in playlists %}
+                            <div class="playlist">
+                                {% if playlist['images'] and playlist['images'][0]['url'] %}
+                                    <img src="{{ playlist['images'][0]['url'] }}" alt="{{ playlist['name'] }} cover">
+                                {% endif %}
+                                <p>{{ playlist['name'] }}</p>
+                                <a href="{{ playlist['external_urls']['spotify'] }}" target="_blank">Listen on Spotify</a>
+
+                                <!-- Share Button to Copy the Spotify Link -->
+                                <button class="share-button" data-url="{{ playlist['external_urls']['spotify'] }}">Share Playlist</button>
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% endif %}
             {% elif error %}
                 <p class="error">{{ error }}</p>

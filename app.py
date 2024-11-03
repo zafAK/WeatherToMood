@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, redirect, session, url_for
 import requests
 import os
 from datetime import datetime
-from spotify_integration import get_auth_url, get_tokens, save_tokens, get_user_playlists, get_mood_playlists
+from algorithm import generate_playlist_for_mood
+from spotify_integration import get_auth_url, get_tokens, save_tokens, get_user_playlists, get_mood_playlists, get_user_recent_tracks_with_features
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -17,18 +18,21 @@ def index():
 def get_weather():
     city = request.form['city']
     weather_data = fetch_weather_data(city)
-    
+
     if not weather_data:
         return render_template('error.html', city=city, error="Weather data not available.")
-    
+
     mood = map_weather_to_mood(weather_data)
-    
-    # Fetch mood-based playlists only if the user is logged in
+
     mood_playlists = None
     if 'access_token' in session:
-        mood_playlists = get_mood_playlists(mood)
-    
+        user_history = get_user_recent_tracks_with_features()
+        playlist = get_mood_playlists(mood)
+        #print(playlist)
+        mood_playlists = generate_playlist_for_mood(user_history, mood, session['access_token'])
+
     return render_template('index.html', city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
+
 
 @app.route('/login')
 def login():

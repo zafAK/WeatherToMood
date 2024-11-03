@@ -9,7 +9,7 @@ REDIRECT_URI = 'http://127.0.0.1:5000/callback'
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1"
-SCOPE = "user-read-private user-read-email playlist-read-private"
+SCOPE = "user-read-recently-played user-read-private user-read-email playlist-read-private"
 STATE = "spotify_auth"
 
 # Step 1: Get Spotify authorization URL
@@ -114,6 +114,82 @@ def get_mood_playlists(mood):
     else:
         print(f"Failed to retrieve playlists: {response.status_code}")
         return []
+
+# Function to get the last 20 songs listened by the user
+def get_user_recent_tracks(access_token):
+    headers = {'Authorization': f'Bearer {access_token}'}
+    response = requests.get(f'{SPOTIFY_API_URL}/me/player/recently-played?limit=20', headers=headers)
+
+    if response.status_code == 200:
+        return response.json().get('items', [])
+    else:
+        print(f"Failed to retrieve tracks: {response.status_code}")
+        return []
+
+# Function to get candidate songs for a mood
+def get_candidate_songs(mood, access_token):
+    headers = {'Authorization': f'Bearer {access_token}'}
+    query = mood
+    response = requests.get(f'{SPOTIFY_API_URL}/search?q={query}&type=track&limit=50', headers=headers)
+
+    if response.status_code != 200:
+        print(f"Failed to retrieve candidate songs: {response.status_code}")
+        return []
+
+    # Retrieve the list of tracks
+    tracks = response.json().get('tracks', {}).get('items', [])
+    if not tracks:
+        return []
+
+    # Extract track IDs for audio features
+    track_ids = [track['id'] for track in tracks]
+    audio_features = get_audio_features_for_tracks(track_ids, access_token)
+
+    # Attach audio features to each track
+    for track in tracks:
+        track_id = track['id']
+        track['audio_features'] = audio_features.get(track_id, {})
+
+    return tracks
+
+def get_audio_features_for_tracks(track_ids, access_token):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"{SPOTIFY_API_URL}/audio-features"
+    response = requests.get(url, headers=headers, params={"ids": ",".join(track_ids)})
+
+    if response.status_code == 200:
+        return {feature['id']: feature for feature in response.json().get('audio_features', [])}
+    else:
+        print("Failed to retrieve audio features.")
+        return {}
+    
+def get_audio_features_for_tracks(track_ids, access_token):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"{SPOTIFY_API_URL}/audio-features"
+    response = requests.get(url, headers=headers, params={"ids": ",".join(track_ids)})
+
+    if response.status_code == 200:
+        return {feature['id']: feature for feature in response.json().get('audio_features', [])}
+    else:
+        print("Failed to retrieve audio features.")
+        return {}
+
+def get_user_recent_tracks_with_features():
+    access_token = session.get('access_token')
+    if not access_token:
+        return redirect(url_for('login'))
+
+    user_history = get_user_recent_tracks(access_token)
+    track_ids = [track['track']['id'] for track in user_history]
+    features = get_audio_features_for_tracks(track_ids, access_token)
+
+    # Attach features to each track
+    for track in user_history:
+        track_id = track['track']['id']
+        track['audio_features'] = features.get(track_id, {})
+
+    return user_history
+
 
 
 def refresh_token():
