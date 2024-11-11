@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, url_for
 import requests
 import os
 from datetime import datetime
+from bs4 import BeautifulSoup
 from algorithm import generate_playlist_for_mood
 from spotify_integration import get_auth_url, get_tokens, save_tokens, get_user_playlists, get_mood_playlists, get_user_recent_tracks_with_features
 
@@ -16,11 +17,18 @@ def index():
 
 @app.route('/weather', methods=['POST'])
 def get_weather():
-    city = request.form['city']
-    weather_data = fetch_weather_data(city)
+    # Check for latitude and longitude in the request form
+    latitude = request.form.get('latitude')
+    longitude = request.form.get('longitude')
+    city = request.form.get('city')
+
+    if latitude and longitude:
+        weather_data = fetch_weather_data(latitude=latitude, longitude=longitude)
+    elif city:
+        weather_data = fetch_weather_data(city=city)
 
     if not weather_data:
-        return render_template('error.html', city=city, error="Weather data not available.")
+        return render_template('error.html',city=city, error="Weather data not available.")
 
     mood = map_weather_to_mood(weather_data)
 
@@ -28,10 +36,11 @@ def get_weather():
     if 'access_token' in session:
         user_history = get_user_recent_tracks_with_features()
         playlist = get_mood_playlists(mood)
-        #print(playlist)
         mood_playlists = generate_playlist_for_mood(user_history, mood, session['access_token'])
 
-    return render_template('index.html', city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
+    return render_template('index.html',city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
+
+
 
 
 @app.route('/login')
@@ -60,12 +69,19 @@ def playlists():
     return render_template('playlists.html', playlists=playlists)
 
 # Function to fetch weather data (no changes needed)
-def fetch_weather_data(city):
-    url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric'
+def fetch_weather_data(city=None, latitude=None, longitude=None):
+    if city:
+        url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric'
+    elif latitude and longitude:
+        url = f'http://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={API_KEY}&units=metric'
+    else:
+        return None
+
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
     return None
+
 
 def map_weather_to_mood(weather_data):
     temp = weather_data['main']['temp']

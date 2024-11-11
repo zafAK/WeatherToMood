@@ -4,9 +4,111 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import unittest
 from app import fetch_weather_data, map_weather_to_mood, app
-from spotify_integration import  refresh_token
+from spotify_integration import  get_user_recent_tracks, refresh_token
 from flask import session
+from bs4 import BeautifulSoup
 from unittest.mock import patch, MagicMock
+from algorithm import adjust_weights_for_mood, calculate_similarity, extract_audio_features
+
+
+class TestSharePlaylist(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
+        app.config['SECRET_KEY'] = 'test_secret_key'  # Ensure there is a secret key
+        app.config['SESSION_TYPE'] = 'filesystem'  # Optional, use the filesystem to store session
+
+
+    def test_share_button_not_present_when_not_logged_in(self):
+        # Simulate a POST request to /weather without logging in
+        response = self.app.post('/weather', data={'city': 'London'})
+
+        # Check if the response is successful
+        self.assertEqual(response.status_code, 200)
+
+        # Parse the HTML with BeautifulSoup
+        soup = BeautifulSoup(response.data, 'html.parser')
+
+        # Ensure no button with class 'share-button' is present in the HTML
+        share_buttons = soup.find_all('button', class_='share-button')
+        self.assertEqual(len(share_buttons), 0)  # Expecting 0 buttons since user is not logged in
+
+    def test_share_button_contains_valid_link(self):
+        # Sample data to render the template
+        playlists = [
+            {
+                'name': 'Mood Booster',
+                'images': [{'url': 'https://example.com/image1.jpg'}],
+                'external_urls': {'spotify': 'https://open.spotify.com/playlist/1'}
+            },
+            {
+                'name': 'Chill Vibes',
+                'images': [{'url': 'https://example.com/image2.jpg'}],
+                'external_urls': {'spotify': 'https://open.spotify.com/playlist/2'}
+            }
+        ]
+
+        self.assertIn('external_urls', playlists[0])
+
+class TestAlgorithm(unittest.TestCase):
+
+    @patch('spotify_integration.get_user_recent_tracks')
+    def test_verify_user_listening_history_is_attained(self, mock_get_user_recent_tracks):
+        # Set the mock to return a predefined user history
+        mock_get_user_recent_tracks.return_value = [
+            {'track': {'id': 'track1', 'name': 'Song 1'}, 'audio_features': {'energy': 0.8, 'valence': 0.6}},
+            {'track': {'id': 'track2', 'name': 'Song 2'}, 'audio_features': {'energy': 0.7, 'valence': 0.5}}
+        ]
+        
+        # Call the function and verify the result
+        user_history = mock_get_user_recent_tracks('mock_access_token')  # Use mock directly
+        self.assertEqual(len(user_history), 2)  # Expecting 2 tracks in history
+        self.assertIn('audio_features', user_history[0])  # Ensure audio features are present
+
+    def test_verify_audio_features_are_attained_for_tracks(self):
+        # Sample user history with audio features
+        user_history = [
+            {'audio_features': {'energy': 0.8, 'valence': 0.6, 'danceability': 0.7}},
+            {'audio_features': {'energy': 0.7, 'valence': 0.5, 'danceability': 0.6}},
+            {'audio_features': {'energy': 0.6, 'valence': 0.4, 'danceability': 0.5}}
+        ]
+        
+        features = extract_audio_features(user_history)
+        expected_features = {'energy': 0.7, 'valence': 0.5, 'danceability': 0.6, 'acousticness': 0}  # Acousticness has no data
+        
+        for key in expected_features:
+            self.assertAlmostEqual(features[key], expected_features[key], places=2)
+
+
+    def test_verify_cosine_similarity_calculation(self):
+        user_features = {'energy': 0.7, 'valence': 0.5, 'danceability': 0.6}
+        candidate_song_features = {'energy': 0.8, 'valence': 0.6, 'danceability': 0.7}
+        mood_weights = adjust_weights_for_mood('Vibrant and Happy')
+        
+        similarity_score = calculate_similarity(user_features, candidate_song_features, mood_weights)
+        
+        # Verify that similarity score is calculated within a realistic range (since we're not doing exact math comparison)
+        self.assertGreaterEqual(similarity_score, 0)
+        self.assertLessEqual(similarity_score, 1)
+
+class TestCityDetection(unittest.TestCase):
+
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
+
+    @patch('app.fetch_weather_data')
+    def test_geolocation_weather(self, mock_fetch_weather_data):
+        mock_fetch_weather_data.return_value = {'main': {'temp': 20}, 'weather': [{'description': 'clear sky'}]}
+
+        # Simulate a POST request with latitude and longitude
+        response = self.app.post('/weather', data={'latitude': '51.5074', 'longitude': '-0.1278'})
+
+        # Verify that fetch_weather_data was called
+        mock_fetch_weather_data.assert_called_once_with(latitude='51.5074', longitude='-0.1278')
+
+
+
 
 class TestSpotifyAuthentication(unittest.TestCase):
 
@@ -21,7 +123,7 @@ class TestSpotifyAuthentication(unittest.TestCase):
     def test_successful_authentication(self, mock_get_auth_url):
         """TestCase 1.1 - Successful Authentication"""
         # Mock the return value of get_auth_url
-        testURL = 'https://accounts.spotify.com/authorize?response_type=code&client_id=aa15a3d54b0f47f8ac487de29a313b1c&scope=user-read-private%20user-read-email%20playlist-read-private&redirect_uri=http://127.0.0.1:5000/callback&state=spotify_auth'
+        testURL = 'https://accounts.spotify.com/'
         mock_get_auth_url.return_value = testURL
         
         

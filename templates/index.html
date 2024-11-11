@@ -5,100 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather to Music App</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f0f8ff;
-            color: #333;
-            text-align: center;
-            padding: 40px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-        }
-        h1 {
-            font-size: 2.5em;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        form {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-        input[type="text"] {
-            padding: 10px;
-            font-size: 18px;
-            width: 70%;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 18px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .spotify-button {
-            background-color: #1db954;
-            margin: 10px 0;
-        }
-        .spotify-button:hover {
-            background-color: #1aa34a;
-        }
-        .data-section {
-            margin-top: 20px;
-        }
-        .data-section h2, .data-section p {
-            margin-bottom: 10px;
-        }
-        .mood {
-            font-size: 1.5em;
-            color: #2ecc71;
-        }
-        .error {
-            color: red;
-            font-weight: bold;
-        }
-        .playlist-section {
-            margin-top: 20px;
-        }
-        .playlist {
-            margin-bottom: 20px;
-        }
-        .playlist img {
-            width: 100px;
-            border-radius: 5px;
-        }
-        .playlist a {
-            display: block;
-            margin-top: 5px;
-            color: #3498db;
-            text-decoration: none;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Arial', sans-serif; background-color: #f0f8ff; color: #333; text-align: center; padding: 40px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        h1 { font-size: 2.5em; color: #2c3e50; margin-bottom: 20px; }
+        form { display: flex; justify-content: center; margin-bottom: 30px; }
+        input[type="text"] { padding: 10px; font-size: 18px; width: 70%; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; font-size: 18px; background-color: #3498db; color: white; border: none; border-radius: 5px; margin-left: 10px; cursor: pointer; }
+        button:hover { background-color: #2980b9; }
+        .spotify-button { background-color: #1db954; margin: 10px 0; }
+        .spotify-button:hover { background-color: #1aa34a; }
+        .data-section { margin-top: 20px; }
+        .data-section h2, .data-section p { margin-bottom: 10px; }
+        .mood { font-size: 1.5em; color: #2ecc71; }
+        .error { color: red; font-weight: bold; }
+        .playlist-section { margin-top: 20px; }
+        .playlist { margin-bottom: 20px; }
+        .playlist img { width: 100px; border-radius: 5px; }
+        .playlist a { display: block; margin-top: 5px; color: #3498db; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Weather to Music App</h1>
+
+        <!-- Button to trigger location detection -->
+        <button onclick="detectLocation()">Use My Location</button>
         
-        <form action="/weather" method="post">
+        <form id="city-form" action="/weather" method="post">
             <input type="text" name="city" placeholder="Enter city name" required>
             <button type="submit">Get Music Based on Weather Once Connected!</button>
         </form>
@@ -148,8 +82,39 @@
 </body>
 </html>
 
-<!-- JavaScript for Copying to Clipboard -->
+<!-- JavaScript for Copying to Clipboard and Detecting Location -->
 <script>
+    function detectLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                // Create a form and submit latitude and longitude to the server
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/weather';
+
+                const latInput = document.createElement('input');
+                latInput.type = 'hidden';
+                latInput.name = 'latitude';
+                latInput.value = lat;
+                form.appendChild(latInput);
+
+                const lonInput = document.createElement('input');
+                lonInput.type = 'hidden';
+                lonInput.name = 'longitude';
+                lonInput.value = lon;
+                form.appendChild(lonInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+
     // Function to handle sharing the playlist link
     document.addEventListener('DOMContentLoaded', function() {
         const shareButtons = document.querySelectorAll('.share-button');
