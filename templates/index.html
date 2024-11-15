@@ -55,6 +55,13 @@
                 <p>Humidity: {{ weather['main']['humidity'] }}%</p>
                 <p>Visibility: {{ weather['visibility'] / 1000 }} km</p>
                 <h3 class="mood">Mood: {{ mood }}</h3>
+
+                <!-- Add this inside the data-section div -->
+                {% if mood_summary %}
+                <h2>Daily Mood Summary</h2>
+                <p>Your mood for today: <span class="mood">{{ mood_summary['mood_label'] }}</span></p>
+                <p>{{ mood_summary['summary'] }}</p>
+                {% endif %}
                 
                 <!-- Mood-Based Playlists Section -->
                 {% if playlists %}
