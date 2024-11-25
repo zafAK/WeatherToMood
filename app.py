@@ -24,6 +24,7 @@ def get_weather():
 
     if latitude and longitude:
         weather_data = fetch_weather_data(latitude=latitude, longitude=longitude)
+        city = "Your Location"
     elif city:
         weather_data = fetch_weather_data(city=city)
 
@@ -41,7 +42,10 @@ def get_weather():
     return render_template('index.html',city=city, weather=weather_data, mood=mood, playlists=mood_playlists)
 
 
-
+@app.route('/toggle_mood_summary', methods=['POST'])
+def toggle_mood_summary():
+    session['show_mood_summary'] = not session.get('show_mood_summary', True)
+    return redirect(url_for('index'))
 
 @app.route('/login')
 def login():

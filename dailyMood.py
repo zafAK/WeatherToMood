@@ -41,8 +41,21 @@ def generate_daily_mood_summary(access_token):
         "summary": summary
     }
 
-# Route to serve the mood summary as JSON
-@app.route('/daily_mood_summary', methods=['GET'])
-def get_daily_mood_summary():
-    mood_summary = generate_daily_mood_summary()
-    return jsonify(mood_summary)
+def get_top_songs_for_mood(listening_history, mood):
+
+    mood_scores = []
+    for track in listening_history:
+        valence = track['audio_features']['valence']
+        energy = track['audio_features']['energy']
+        track_mood = determine_song_mood(valence, energy)
+        if track_mood == mood:
+            mood_scores.append((track['name'], valence + energy))  # Example scoring
+
+    mood_scores.sort(key=lambda x: x[1], reverse=True)
+    return [track for track, _ in mood_scores[:3]]
+
+def analyze_mood_trend(mood_history):
+    mood_counts = Counter(mood_history)
+    total_days = len(mood_history)
+    trend = {mood: (count / total_days) * 100 for mood, count in mood_counts.items()}
+    return trend

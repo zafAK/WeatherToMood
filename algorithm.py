@@ -13,6 +13,10 @@ def adjust_weights_for_mood(mood):
         'Sad': {'acousticness': 0.7, 'valence': 0.3, 'energy': 0.4},
         'Peaceful': {'instrumentalness': 0.8, 'acousticness': 0.9}
     }
+
+    if mood not in mood_weights:
+        print(f"Unknown mood: {mood}, applying default weights.")
+
     return mood_weights.get(mood, {'energy': 0.5, 'valence': 0.5, 'danceability': 0.5})
 
 
@@ -97,7 +101,36 @@ def generate_playlist_for_mood(user_history, mood, access_token):
 
     return recommended_songs
 
+def verify_playlist_tracks(playlist_tracks, access_token):
 
+    SPOTIFY_API_URL = "https://api.spotify.com/v1/tracks"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    track_existence = {}
 
+    # Split into chunks of 50 as Spotify API limits batch queries
+    chunk_size = 50
+    for i in range(0, len(playlist_tracks), chunk_size):
+        chunk = playlist_tracks[i:i + chunk_size]
+        track_ids = ",".join(chunk)  # Prepare comma-separated track IDs
+        response = requests.get(f"{SPOTIFY_API_URL}?ids={track_ids}", headers=headers)
+
+        if response.status_code == 200:
+            tracks = response.json().get('tracks', [])
+            for track_id, track_info in zip(chunk, tracks):
+                # Track info is None if it doesn't exist
+                track_existence[track_id] = track_info is not None
+        else:
+            print(f"Error verifying tracks: {response.status_code}")
+            for track_id in chunk:
+                track_existence[track_id] = False
+
+    return track_existence
+
+def log_user_interaction(action, details=None):
+
+    log_message = f"User Action: {action}"
+    if details:
+        log_message += f" | Details: {details}"
+    print(log_message)
 
 
