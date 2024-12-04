@@ -5,3 +5,4 @@ tests/.coverage
 __pycache__/spotify_integration.cpython-38.pyc
 tests/__pycache__/test_app.cpython-38.pyc
 __pycache__/algorithm.cpython-38.pyc
+__pycache__/dailyMood.cpython-38.pyc

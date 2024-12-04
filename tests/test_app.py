@@ -8,8 +8,84 @@ from spotify_integration import  get_user_recent_tracks, refresh_token
 from flask import session
 from bs4 import BeautifulSoup
 from unittest.mock import patch, MagicMock
-from algorithm import adjust_weights_for_mood, calculate_similarity, extract_audio_features
+from dailyMood import generate_daily_mood_summary
+from algorithm import adjust_weights_for_mood, calculate_similarity, extract_audio_features, generate_playlist_for_mood
 
+
+
+class TestDailyMoodSummary(unittest.TestCase):
+    def test_mood_summary_generation(self):
+        """TestCase 1.1 - Mood Summary Generation for Available Listening History"""
+        user_history = [
+            {'audio_features': {'valence': 0.8, 'energy': 0.9}},
+            {'audio_features': {'valence': 0.6, 'energy': 0.7}}
+        ]
+        summary = generate_daily_mood_summary(user_history)
+        self.assertIn("Today's predominant mood", summary['summary'])
+
+    def test_handling_missing_listening_history(self):
+        """TestCase 1.2 - Handling Missing Listening History"""
+        summary = generate_daily_mood_summary([])
+        self.assertEqual(summary['mood_label'], 'Neutral')
+        self.assertIn("No listening history available", summary['summary'])
+
+    def test_mood_summary_accuracy(self):
+        """TestCase 1.3 - Mood Summary Accuracy Based on Valence and Energy"""
+        user_history = [
+            {'audio_features': {'valence': 0.3, 'energy': 0.2}},
+            {'audio_features': {'valence': 0.2, 'energy': 0.1}}
+        ]
+        summary = generate_daily_mood_summary(user_history)
+        self.assertEqual(summary['mood_label'], 'Neutral')
+
+class TestBugFixing(unittest.TestCase):
+    def test_verify_recommended_songs_count(self):
+        """TestCase 2.1 - Verify Recommended Songs Count in Playlist Creation"""
+        user_history = [
+            {'audio_features': {'valence': 0.8, 'energy': 0.9}},
+            {'audio_features': {'valence': 0.6, 'energy': 0.7}}
+        ]
+        playlist = generate_playlist_for_mood(user_history, 'Happy', 'mock_access_token')
+        self.assertEqual(len(playlist), 20)
+
+    def test_verify_ui_display_for_user_history_playlists(self):
+        """TestCase 2.2 - Verify UI Display for Playlists from User History"""
+        with app.test_client() as client:
+            response = client.get('/playlists')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'View My Spotify Playlists', response.data)
+
+    def test_verify_auto_location_toggle(self):
+        """TestCase 2.3 - Verify Auto Location Detection Toggle"""
+        with app.test_client() as client:
+            response = client.get('/')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Use My Location', response.data)
+
+class TestToggleListeningHistory(unittest.TestCase):
+    def test_toggle_on_user_history_used(self):
+        """TestCase 3.1 - When Toggle is On Will Take Input from User Listening History"""
+        with app.test_client() as client:
+            with client.session_transaction() as session:
+                session['use_user_history'] = True
+            response = client.post('/weather', data={'city': 'New York'})
+            self.assertIn(b'Mood:', response.data)
+
+    def test_toggle_off_user_history_not_used(self):
+        """TestCase 3.2 - When Toggle is Off Will Not Take Input from User Listening History"""
+        with app.test_client() as client:
+            with client.session_transaction() as session:
+                session['use_user_history'] = False
+            response = client.post('/weather', data={'city': 'New York'})
+            self.assertIn(b'Mood:', response.data)
+            self.assertNotIn(b'Your recent tracks were used', response.data)
+
+    def test_ui_toggle_display(self):
+        """TestCase 3.3 - Will Display Toggle Properly on UI"""
+        with app.test_client() as client:
+            response = client.get('/')
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Toggle User History', response.data)
 
 class TestSharePlaylist(unittest.TestCase):
     def setUp(self):

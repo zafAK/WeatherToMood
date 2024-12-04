@@ -53,9 +53,11 @@ def get_or_create_playlist(mood, access_token):
 
     if response.status_code == 200:
         playlists = response.json().get('items', [])
+        print("hERE iS THE PLAYlSITS:  ", playlists)
         for playlist in playlists:
-            if playlist['name'] == mood:
-                return playlist['id']  # Return existing playlist ID
+            if playlist != None:
+                if playlist['name'] == mood:
+                    return playlist['id']  # Return existing playlist ID
 
     # Step 2: Create playlist if not found
     data = {
